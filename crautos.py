@@ -8,8 +8,8 @@ from bs4.element import Tag, NavigableString
 from datetime import date, datetime, timedelta
 
 formdata = {
-    "brand": 35,  # 35 toyota, 16 hyundai
-    "modelstr": "rav4",
+    "brand": 97,  # 35 toyota, 16 hyundai, 15 honda, 97 BYD,
+    "modelstr": "",
     "style": 00,
     "fuel": 0,
     "trans": 0,
@@ -32,6 +32,7 @@ months = {
     'Febrero': '2',
     'Marzo': '3',
     'Abril': '4',
+    'Abri' : '4',
     'Mayo': '5',
     'Junio': '6',
     'Julio': '7',
@@ -53,7 +54,14 @@ INFO_GENERAL = [
     'Precio negociable', 'Se recibe vehículo', 'Provincia', 'Fecha de ingreso'
     ]
 
-CSV_LOCATION = 'crautos_result'
+COLUMNS_ORDER = [
+    'Modelo', 'Estilo', 'Combustible', 'Transmisión', 
+    'Cilindrada', 'Kilometraje', 'Año', 'Precio Colones', 'Precio Dolares', 'Precio negociable',
+    'Placa', 'Color exterior', 'Color interior', 'Ya pagó impuestos', 'Provincia', 'Estado',
+    'Fecha de ingreso', 'link', 'Se recibe vehículo', 'de puertas'
+    ]
+
+CSV_LOCATION = 'data/crautos_result'
 
 
 def isnumeric(x):
@@ -81,6 +89,13 @@ def parse_fecha(fecha_str):
     fecha = datetime.strptime(fecha, '%d %m %Y').date()
 
     return fecha
+
+
+def extract_str_to_int(series):
+    series = pd.to_numeric((series.str.extract('(\d+)', expand=False)), errors="coerce", downcast="integer")
+    series = series.fillna(0).astype(int)
+
+    return series
 
 
 def get_posted_cars_links():
@@ -148,18 +163,19 @@ def get_posted_cars_links():
 
     df["Fecha de ingreso"] = df["Fecha de ingreso"].apply(parse_fecha)
 
-    df["Cilindrada"] = df["Cilindrada"].fillna("0").str.extract('(\d+)').astype(int, errors="ignore")
-    df["Kilometraje"] = df["Kilometraje"].fillna("0").str.extract('(\d+\.*)').astype(int, errors="ignore")
+    df["Cilindrada"] = extract_str_to_int(df["Cilindrada"])
+    df["Kilometraje"] = extract_str_to_int(df["Kilometraje"])
+    df["Precio Colones"] = extract_str_to_int(df["Precio Colones"])
+    df["Precio Dolares"] = extract_str_to_int(df["Precio Dolares"])
+    df["Año"] = extract_str_to_int(df["Año"])
 
 
     file_datetime_id = datetime.today().strftime('%Y%m%d_%H%M%S')
     
-    df.to_csv(CSV_LOCATION+file_datetime_id+".csv", index=False)
-    df.to_excel(CSV_LOCATION+file_datetime_id+".xlsx", index=False)
+    # df.to_csv(CSV_LOCATION+file_datetime_id+".csv", index=False)
 
-    pp = pprint.PrettyPrinter(indent=4)
-    print("car list")
-    pp.pprint(leather_car_links)
+    df = df[COLUMNS_ORDER]
+    df.to_excel(CSV_LOCATION+file_datetime_id+".xlsx", index=False)
 
 
 def main():
