@@ -156,6 +156,15 @@ def pull_info_from_car_link(car_link) -> pd.DataFrame:
     
     df["link"] = CARDETAIL_URL.format(car_link)
 
+    local_columns = [
+        'Cilindrada', 'Estilo', 'Combustible', 'Transmisión', 'Estado', 'Kilometraje', 
+        'Placa', 'Color exterior', 'Color interior', 'de puertas', 'Ya pagó impuestos', 
+        'Precio negociable', 'Se recibe vehículo', 'Provincia', 'Fecha de ingreso', 'Modelo', 
+        'Año', 'Precio Colones', 'Precio Dolares', 'link']
+
+    df = df[local_columns]
+
+
     return df
 
 
@@ -169,6 +178,7 @@ def iter_car_links(car_links) -> pd.DataFrame:
     for car_link in car_links:
         try:
             df_car = pull_info_from_car_link(car_link)
+            df_car = df_car.reset_index(drop=True)
             df_list.append(df_car)
         except Exception as exc:
             print(exc)
@@ -180,7 +190,8 @@ def iter_car_links(car_links) -> pd.DataFrame:
     except Exception as exc:
         print(exc)
         for df1 in df_list:
-            print(len(df1.columns), df1.columns)
+            print(df1.shape, df1["Modelo"])
+            print(df1["link"])
         return pd.DataFrame()
 
 
@@ -218,9 +229,14 @@ def read_car_brands():
 def main():
     # 35 toyota, 16 hyundai, 15 honda, 26 nissan, 17 isuzu, 34 suzuki, 19 kia
     custom_brand_query = [
+
+        {"brand": 34, "modelstr": "vitara"},
+        {"brand": 35, "modelstr": "hilux"},
+
+
         {"brand": 35, "modelstr": "rav4"},
         {"brand": 35, "modelstr": "yaris"},
-        {"brand": 35, "modelstr": "hilux"},
+        
         {"brand": 35, "modelstr": "corolla"},
         
         {"brand": 16, "modelstr": "tucson"},
@@ -237,7 +253,7 @@ def main():
 
         {"brand": 17, "modelstr": "dmax"},
 
-        {"brand": 34, "modelstr": "vitara"},
+        
 
         {"brand": 19, "modelstr": "sportage"},
         {"brand": 19, "modelstr": "sorento"},
@@ -265,6 +281,9 @@ def main():
         df["Marca"] = brand
 
         df_cars.append(df)
+
+        # if e == 2:
+        #     break
 
     if df_cars :
     
