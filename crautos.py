@@ -1,5 +1,6 @@
 import json
 import logging
+import numpy as np
 import pandas as pd
 import requests
 
@@ -56,10 +57,10 @@ INFO_GENERAL = [
     ]
 
 COLUMNS_ORDER = [
-    'Modelo', 'Estilo', 'Combustible', 'Transmisión', 
-    'Año','Cilindrada', 'Kilometraje',  'Precio Colones', 'Precio Dolares', 'Precio negociable',
+    'Modelo', 'link', 'Estilo', 'Combustible', 'Transmisión', 
+    'Año','Cilindrada', 'Kilometraje', 'KM por año', 'Precio Colones', 'Precio Dolares', 'Precio negociable',
     'Placa', 'Color exterior', 'Color interior', 'Ya pagó impuestos', 'Provincia', 'Estado',
-    'Fecha de ingreso', 'link', 'Se recibe vehículo', 'de puertas'
+    'Fecha de ingreso', 'Se recibe vehículo', 'de puertas'
     ]
 
 CSV_LOCATION = 'data/crautos_result'
@@ -156,11 +157,18 @@ def pull_info_from_car_link(car_link) -> pd.DataFrame:
     
     df["link"] = CARDETAIL_URL.format(car_link)
 
+    df = df.dropna(axis="columns", how="all")
+
     local_columns = [
         'Cilindrada', 'Estilo', 'Combustible', 'Transmisión', 'Estado', 'Kilometraje', 
         'Placa', 'Color exterior', 'Color interior', 'de puertas', 'Ya pagó impuestos', 
         'Precio negociable', 'Se recibe vehículo', 'Provincia', 'Fecha de ingreso', 'Modelo', 
         'Año', 'Precio Colones', 'Precio Dolares', 'link']
+
+    # if not present then created column with nan
+    for lc in local_columns:
+        if lc not in df.columns:
+            df[lc] = np.nan
 
     df = df[local_columns]
 
@@ -182,16 +190,13 @@ def iter_car_links(car_links) -> pd.DataFrame:
             df_list.append(df_car)
         except Exception as exc:
             print(exc)
-    
+
     # concat every dfs
 
     try:
         df = pd.concat(df_list)
     except Exception as exc:
         print(exc)
-        for df1 in df_list:
-            print(df1.shape, df1["Modelo"])
-            print(df1["link"])
         return pd.DataFrame()
 
 
@@ -203,6 +208,8 @@ def iter_car_links(car_links) -> pd.DataFrame:
     df["Precio Dolares"] = extract_str_to_int(df["Precio Dolares"])
     df["Año"] = extract_str_to_int(df["Año"])
 
+    current_year = date.today().year 
+    df["KM por año"] = df["Kilometraje"]/(current_year - df["Año"])
 
     return df
 
@@ -241,19 +248,16 @@ def main():
         
         {"brand": 16, "modelstr": "tucson"},
         {"brand": 16, "modelstr": "santa fe"},
-        {"brand": 16, "modelstr": "santa fe"},
-        {"brand": 16, "modelstr": "creta fe"},
+        {"brand": 16, "modelstr": "creta"},
 
         {"brand": 15, "modelstr": "crv"},
 
-        {"brand": 26, "modelstr": "kiks"},
+        {"brand": 26, "modelstr": "kicks"},
         {"brand": 26, "modelstr": "qashqai"},
         {"brand": 26, "modelstr": "xtrail"},
 
 
         {"brand": 17, "modelstr": "dmax"},
-
-        
 
         {"brand": 19, "modelstr": "sportage"},
         {"brand": 19, "modelstr": "sorento"},
@@ -269,7 +273,7 @@ def main():
         brand = car_brands.get(str(custom_query["brand"]), "Sin identificar")
         car_model = custom_query.get("modelstr", "Sin identificar")
 
-        print(f"Iteration {e} of {len(custom_brand_query)}. Brand {brand} model: {car_model}")
+        print(f"Iteration {e+1} of {len(custom_brand_query)}. Brand {brand} model: {car_model}")
 
         formdata_local = formdata
         formdata_local.update(custom_query)
@@ -281,9 +285,6 @@ def main():
         df["Marca"] = brand
 
         df_cars.append(df)
-
-        # if e == 2:
-        #     break
 
     if df_cars :
     
