@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag, NavigableString
 from datetime import date, datetime, timedelta
 
+from PIL import Image
+from io import BytesIO
 
 formdata = {
     "brand": 97,  # 35 toyota, 16 hyundai, 15 honda, 97 BYD,
@@ -49,6 +51,7 @@ months = {
 SEARCH_URL = "https://crautos.com/autosusados/searchresults.cfm?p={}"
 CARDETAIL_URL = "https://crautos.com/autosusados/{}"
 BASE_URL = "https://crautos.com/autosusados/"
+PHOTO_URL = "https://crautos.com/{}"
 
 INFO_GENERAL = [
     'Cilindrada', 'Estilo', 'Combustible', 'Transmisión', 'Estado', 'Kilometraje', 
@@ -60,7 +63,7 @@ COLUMNS_ORDER = [
     'Modelo', 'link', 'Estilo', 'Combustible', 'Transmisión', 
     'Año','Cilindrada', 'Kilometraje', 'KM por año', 'Precio Colones', 'Precio Dolares', 'Precio negociable',
     'Placa', 'Color exterior', 'Color interior', 'Ya pagó impuestos', 'Provincia', 'Estado',
-    'Fecha de ingreso', 'Se recibe vehículo', 'de puertas'
+    'Fecha de ingreso', 'Se recibe vehículo', 'de puertas', 'Marca', 'Modelstr'
     ]
 
 CSV_LOCATION = 'data/crautos_result'
@@ -82,6 +85,26 @@ def read_recursive(tags, data):
         if (type(tag) == NavigableString) and (tag.strip() != '') and (len(tag.strip()) < 100):
             tag_py_str = "".join(e for e in str(tag) if e.isalnum() or e == " ")
             data.append(tag_py_str)
+
+def read_photos(tags, data):
+    # TODO
+    photos_list = []
+    for tag in tags:
+        photo_src = tag.get("src", None)
+        if type(photo_src) is str:
+            if "/clasificados/usados" in photo_src:
+                # print(photo_src)
+                photos_list.append(PHOTO_URL.format(photo_src))
+
+    print(photos_list)
+
+    for p_url in photos_list:
+        r = requests.get(p_url)
+        img = Image.open(BytesIO(r.content))
+        
+        print(img)
+
+    return photos_list
         
 def parse_date(date_str):
     date_ = date_str.replace('de', '').replace('l', '')
@@ -135,10 +158,10 @@ def pull_info_from_car_link(car_link) -> pd.DataFrame:
     page = requests.get(CARDETAIL_URL.format(car_link))
     soup = BeautifulSoup(page.content, 'html.parser')
 
-    data = {"cardetails": [], "info": [], "equipamiento": [], "detalles": []}
+    data = {"cardetails": [], "info": [], "equipamiento": [], "detalles": [], "photos": []}
 
     read_recursive(soup.find_all('div', id='geninfo'), data["info"])
-    read_recursive(soup.find_all('div', {"class":"margin-bottom-10 clearfix cardetailtitle"}), data["cardetails"])
+    read_recursive(soup.find_all('div', {"class":"margin-bottom-10 clearfix cardetailtitle"}), data["cardetails"])    
 
     df = pd.DataFrame({"caracteristicas":data["info"]})
 
@@ -238,17 +261,18 @@ def main():
     custom_brand_query = [
 
         {"brand": 34, "modelstr": "vitara"},
+
         {"brand": 35, "modelstr": "hilux"},
-
-
         {"brand": 35, "modelstr": "rav4"},
         {"brand": 35, "modelstr": "yaris"},
-        
+        {"brand": 35, "modelstr": "fortuner"},
         {"brand": 35, "modelstr": "corolla"},
         
         {"brand": 16, "modelstr": "tucson"},
         {"brand": 16, "modelstr": "santa fe"},
         {"brand": 16, "modelstr": "creta"},
+        {"brand": 16, "modelstr": "elantra"},
+        {"brand": 16, "modelstr": "accent"},
 
         {"brand": 15, "modelstr": "crv"},
 
@@ -261,6 +285,9 @@ def main():
 
         {"brand": 19, "modelstr": "sportage"},
         {"brand": 19, "modelstr": "sorento"},
+        
+        {"brand": 23, "modelstr": "bt"},
+        {"brand": 23, "modelstr": "cx"},  
         
         
     ]
@@ -282,14 +309,18 @@ def main():
 
         df = iter_car_links(car_links)
 
-        df["Marca"] = brand
+        df["Marca"] = brand.title()
+        df["Modelstr"] = car_model.title()
 
         df_cars.append(df)
 
     if df_cars :
     
         df_cars = pd.concat(df_cars)
+        if "Precio Colones" in df_cars.columns:
+            df_cars = df_cars.sort_values("Precio Colones")
 
+        
         df_cars = df_cars.reset_index(drop=True)
 
         save_to_file(df_cars)
