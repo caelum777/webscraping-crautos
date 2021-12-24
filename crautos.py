@@ -60,10 +60,10 @@ INFO_GENERAL = [
     ]
 
 COLUMNS_ORDER = [
-    'Modelo', 'link', 'Estilo', 'Combustible', 'Transmisión', 
-    'Año','Cilindrada', 'Kilometraje', 'KM por año', 'Precio Colones', 'Precio Dolares', 'Precio negociable',
-    'Placa', 'Color exterior', 'Color interior', 'Ya pagó impuestos', 'Provincia', 'Estado',
-    'Fecha de ingreso', 'Se recibe vehículo', 'de puertas', 'Marca', 'Modelstr'
+    'Marca', 'Modelstr', 'link', 'Estilo', 'Combustible', 'Transmisión', 
+    'Año','Cilindrada', 'Kilometraje', 'KM por año', 'Precio Colones', 'Precio Dolares', "Dias desde publicado", 
+    'Precio negociable', 'Placa', 'Color exterior', 'Color interior', 'Ya pagó impuestos', 'Provincia', 'Estado',
+    'Fecha de ingreso', 'Se recibe vehículo', 'de puertas', 'Modelo'
     ]
 
 CSV_LOCATION = 'data/crautos_result'
@@ -211,6 +211,7 @@ def iter_car_links(car_links) -> pd.DataFrame:
             df_car = pull_info_from_car_link(car_link)
             df_car = df_car.reset_index(drop=True)
             df_list.append(df_car)
+            # break
         except Exception as exc:
             print(exc)
 
@@ -224,11 +225,20 @@ def iter_car_links(car_links) -> pd.DataFrame:
 
 
     df["Fecha de ingreso"] = df["Fecha de ingreso"].apply(parse_date)
+    df["Fecha de hoy"] = date.today()
+    df["Dias desde publicado"] = (df["Fecha de hoy"] - df["Fecha de ingreso"]).dt.days
+
+    # print(df[["Fecha de ingreso","Fecha de hoy", "Dias desde publicado"]])
+
+    
+
+
 
     df["Cilindrada"] = extract_str_to_int(df["Cilindrada"])
     df["Kilometraje"] = extract_str_to_int(df["Kilometraje"])
     df["Precio Colones"] = extract_str_to_int(df["Precio Colones"])
     df["Precio Dolares"] = extract_str_to_int(df["Precio Dolares"])
+
     df["Año"] = extract_str_to_int(df["Año"])
 
     current_year = date.today().year 
@@ -261,18 +271,26 @@ def main():
     custom_brand_query = [
 
         {"brand": 34, "modelstr": "vitara"},
+        {"brand": 34, "modelstr": "jimny"},
 
         {"brand": 35, "modelstr": "hilux"},
         {"brand": 35, "modelstr": "rav4"},
         {"brand": 35, "modelstr": "yaris"},
         {"brand": 35, "modelstr": "fortuner"},
         {"brand": 35, "modelstr": "corolla"},
+        {"brand": 35, "modelstr": "prado"},
+        {"brand": 35, "modelstr": "echo"},
+        
+        
         
         {"brand": 16, "modelstr": "tucson"},
         {"brand": 16, "modelstr": "santa fe"},
         {"brand": 16, "modelstr": "creta"},
         {"brand": 16, "modelstr": "elantra"},
         {"brand": 16, "modelstr": "accent"},
+        {"brand": 16, "modelstr": "i10"},
+        {"brand": 16, "modelstr": "verna"},
+        
 
         {"brand": 15, "modelstr": "crv"},
 
@@ -287,8 +305,31 @@ def main():
         {"brand": 19, "modelstr": "sorento"},
         
         {"brand": 23, "modelstr": "bt"},
-        {"brand": 23, "modelstr": "cx"},  
+        {"brand": 23, "modelstr": "cx"},
+        {"brand": 23, "modelstr": "miata"},
+          
+
+        {"brand": 18, "modelstr": "wrangler"},
+        {"brand": 18, "modelstr": "cherokee"},
+        {"brand": 18, "modelstr": "gladiator"},
+        {"brand": 18, "modelstr": "rubicon"},
         
+        {"brand": 25, "modelstr": "L200"}, 
+        {"brand": 25, "modelstr": "montero"}, 
+        {"brand": 25, "modelstr": "outlander"}, 
+        {"brand": 25, "modelstr": "asx"}, 
+        {"brand": 25, "modelstr": "eclipse"}, 
+        
+        {"brand": 5, "modelstr": "z4"}, 
+        {"brand": 5, "modelstr": "x"}, 
+        
+        {"brand": 36, "modelstr": "amarok"}, 
+        {"brand": 36, "modelstr": "tiguan"}, 
+        {"brand": 36, "modelstr": "taos"}, 
+        
+        
+
+
         
     ]
 
@@ -317,6 +358,8 @@ def main():
     if df_cars :
     
         df_cars = pd.concat(df_cars)
+        df_cars = df_cars.drop_duplicates(subset="link")
+        
         if "Precio Colones" in df_cars.columns:
             df_cars = df_cars.sort_values("Precio Colones")
 
