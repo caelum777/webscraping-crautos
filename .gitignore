@@ -1,0 +1,6 @@
+# excel files
+*.xls
+*.xlsx
+
+# csv
+*.csv
